@@ -108,7 +108,9 @@ async function init() {
 
 async function chargerMonIp() {
   try {
-    const res = await fetch((localStorage.getItem("mf_api_base") || "http://localhost:8080") + "/api/auth/my-ip");
+    const res = await fetch((localStorage.getItem("mf_api_base") || (
+      (window.location.hostname==="localhost"||window.location.hostname==="127.0.0.1")?"http://localhost:8080":""
+    )) + "/api/auth/my-ip");
     const data = await res.json();
     monIpValue = data.ip || data.ipRaw || "";
     const el = document.getElementById("my-ip-display");

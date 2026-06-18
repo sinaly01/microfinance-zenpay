@@ -152,7 +152,10 @@ async function telechargerPDF() {
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   try {
     const token = localStorage.getItem("mf_jwt_token");
-    const apiBase = localStorage.getItem("mf_api_base") || "http://localhost:8080";
+    const apiBase = localStorage.getItem("mf_api_base") || (
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+        ? "http://localhost:8080" : ""
+    );
     const res = await fetch(`${apiBase}/api/rib/${myIdClient}`, {
       headers: { "Authorization": "Bearer " + token }
     });

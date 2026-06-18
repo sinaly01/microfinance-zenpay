@@ -129,7 +129,10 @@ $page_title = 'Connexion — ZEN-PAY';
 
 <script src="js/api.js"></script>
 <script>
-const API_URL = localStorage.getItem("mf_api_base") || "http://localhost:8080";
+const API_URL = localStorage.getItem("mf_api_base") || (
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://localhost:8080" : ""
+);
 let pendingEmail = "";
 
 function show(step) {
