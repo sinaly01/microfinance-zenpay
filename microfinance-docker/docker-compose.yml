@@ -35,7 +35,7 @@ services:
   spring-api:
     build:
       context: ../microfinance-api
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: zenpay-api
     restart: unless-stopped
     depends_on:
