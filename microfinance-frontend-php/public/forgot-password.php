@@ -44,6 +44,7 @@ $page_title = 'Mot de passe oublié — ZEN-PAY';
       <!-- Étape 1 : Email -->
       <div id="step-email">
         <p class="login-sub">Entrez votre adresse email pour recevoir un code de réinitialisation.</p>
+        <div id="email-hint" style="display:none;font-size:.82rem;color:var(--primary,#6366f1);margin-bottom:14px;padding:10px 14px;background:rgba(99,102,241,.08);border-left:3px solid var(--primary,#6366f1);border-radius:6px;"></div>
         <form id="form-email">
           <div class="form-group">
             <label class="form-label">Adresse e-mail</label>
@@ -123,6 +124,22 @@ const API_URL = localStorage.getItem("mf_api_base") || (
 );
 let pendingEmail = "";
 let resendCooldown = 0;
+
+// Pré-remplir avec l'email mémorisé dans le navigateur
+(function() {
+  try {
+    const raw = localStorage.getItem("mf_user");
+    if (!raw) return;
+    const u = JSON.parse(raw);
+    if (!u.email) return;
+    document.getElementById("email").value = u.email;
+    const [local, domain] = u.email.split("@");
+    const masked = (local.length > 2 ? local.slice(0, 2) : local[0]) + "***@" + (domain || "");
+    const hint = document.getElementById("email-hint");
+    hint.innerHTML = "💡 Votre email enregistré&nbsp;: <strong>" + masked + "</strong>";
+    hint.style.display = "";
+  } catch(e) {}
+})();
 
 function show(step) {
   ["step-email","step-code","step-success"].forEach(id => {
