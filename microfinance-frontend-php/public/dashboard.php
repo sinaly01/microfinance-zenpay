@@ -274,6 +274,8 @@ async function buildKpis(keys) {
   }</div>`;
 
   const safe = async (fn, fb) => { try { return await fn(); } catch { return fb; } };
+  const detecterTypeTx = t => t.typeTransaction ||
+    ("source" in t ? "VERSEMENT" : "canal" in t ? "RETRAIT" : "VIREMENT");
 
   const [clients, comptes, txs, sessions, kyc, tickets, auditLogs] = await Promise.all([
     keys.includes("clients")       ? safe(() => api.get("/api/clients"), []) : Promise.resolve([]),
@@ -296,7 +298,8 @@ async function buildKpis(keys) {
   set("kpi-tickets",  (tickets||[]).length);
   set("kpi-audit",    (auditLogs||[]).length);
 
-  if ((txs||[]).length > 0) buildCharts(txs);
+  const txsNorm = (txs||[]).map(t => ({...t, typeTransaction: detecterTypeTx(t)}));
+  if (txsNorm.length > 0) buildCharts(txsNorm);
 }
 
 /* ─── Graphes dynamiques ────────────────────────────────── */
@@ -451,18 +454,22 @@ async function renderTransactions(container) {
     </div>
   </div>`;
   try {
-    const list = cachedData.txs || await api.get("/api/transactions");
-    const recent = (list||[]).slice(0,8);
+    const rawList = cachedData.txs || await api.get("/api/transactions");
+    const recent = (rawList||[]).slice(0,8).map(t => ({...t, typeTransaction: detecterTypeTx(t)}));
     const tbody = document.getElementById("tx-tbody");
     if (!recent.length) { tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted);">Aucune transaction</td></tr>`; return; }
+    const typeColor = {VERSEMENT:"#16a34a",RETRAIT:"#dc2626",VIREMENT:"#7c3aed"};
+    const typeLabel = {VERSEMENT:"Versement",RETRAIT:"Retrait",VIREMENT:"Virement"};
     tbody.innerHTML = recent.map(t => {
       const dt = t.dateHeure ? new Date(t.dateHeure).toLocaleDateString("fr-FR") : "—";
-      const type = t.typeTransaction || "TXN";
+      const type = t.typeTransaction;
+      const c = typeColor[type]||"#888";
       const montant = t.montant ? Number(t.montant).toLocaleString("fr-FR")+" FCFA" : "—";
       const s = t.statut||"—";
       return `<tr>
         <td style="font-family:monospace;font-size:.8rem;">${t.reference||"—"}</td>
-        <td>${type}</td><td style="font-weight:600;">${montant}</td>
+        <td><span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:.71rem;font-weight:700;color:${c};background:${c}18;">${typeLabel[type]||type}</span></td>
+        <td style="font-weight:600;">${montant}</td>
         <td><span class="badge ${txBadge[s]||"badge-pending"}">${s}</span></td>
         <td style="font-size:.82rem;">${dt}</td>
       </tr>`;
