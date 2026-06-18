@@ -68,6 +68,27 @@ $sidebar_active = 'parametres';
     </div>
   </div>
 
+  <!-- Mode maintenance (Super Admin uniquement) -->
+  <div class="param-section" id="section-maintenance" style="display:none;border-left:4px solid #dc2626;">
+    <h2 style="color:#dc2626;">Mode maintenance d'urgence</h2>
+    <p class="desc">Gèle ou rétablit le service. En mode maintenance, toutes les transactions (versement, retrait, virement) sont bloquées pour tous les utilisateurs.</p>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:14px 16px;background:#fafafa;border:1px solid var(--border);border-radius:8px;">
+      <span style="font-size:.83rem;color:var(--muted);font-weight:600;">Statut actuel :</span>
+      <span id="maintenance-status-badge">—</span>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn" id="btn-activer-maint" onclick="toggleMaintenance(true)"
+        style="background:#dc2626;color:#fff;height:40px;padding:0 20px;font-weight:700;">
+        Activer la maintenance
+      </button>
+      <button class="btn" id="btn-desactiver-maint" onclick="toggleMaintenance(false)"
+        style="background:#16a34a;color:#fff;height:40px;padding:0 20px;font-weight:700;">
+        Désactiver la maintenance
+      </button>
+    </div>
+    <p style="font-size:.76rem;color:var(--muted);margin-top:10px;">⚠️ Les administrateurs restent connectés et peuvent naviguer. Seules les opérations financières sont gelées.</p>
+  </div>
+
   <!-- Clé secrète portail (Super Admin uniquement) -->
   <div class="param-section" id="section-cle-secrete" style="display:none;border-left:4px solid #7c3aed;">
     <h2 style="color:#7c3aed;">Clé secrète du portail administrateur</h2>
@@ -133,8 +154,44 @@ document.addEventListener("sidebarReady", ({ detail: { me, role } }) => {
   // Afficher la section clé secrète uniquement pour le Super Admin
   if (role === "SUPER_ADMIN") {
     document.getElementById("section-cle-secrete").style.display = "block";
+    document.getElementById("section-maintenance").style.display = "block";
+    chargerStatutMaintenance();
   }
 });
+
+/* ── Maintenance (Super Admin) ── */
+async function chargerStatutMaintenance() {
+  try {
+    const data = await api.get("/api/system/status");
+    const enMaint = data.status === "MAINTENANCE_CRITIQUE";
+    const badge = document.getElementById("maintenance-status-badge");
+    if (enMaint) {
+      badge.innerHTML = '<span style="color:#dc2626;background:#fef2f2;padding:3px 12px;border-radius:20px;font-weight:700;font-size:.82rem;">🔴 EN MAINTENANCE</span>';
+    } else {
+      badge.innerHTML = '<span style="color:#16a34a;background:#f0fdf4;padding:3px 12px;border-radius:20px;font-weight:700;font-size:.82rem;">🟢 OPÉRATIONNEL</span>';
+    }
+    document.getElementById("btn-activer-maint").disabled = enMaint;
+    document.getElementById("btn-desactiver-maint").disabled = !enMaint;
+  } catch(e) {}
+}
+
+async function toggleMaintenance(activer) {
+  const msg = activer
+    ? "⚠️ Activer la maintenance bloquera toutes les transactions. Confirmer ?"
+    : "Désactiver la maintenance et reprendre le service normal ?";
+  if (!confirm(msg)) return;
+  const btn = document.getElementById(activer ? "btn-activer-maint" : "btn-desactiver-maint");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await api.postQuery("/api/system/kill-switch", { activer });
+    flash(res.message || "Statut mis à jour.", activer ? "error" : "success");
+    await chargerStatutMaintenance();
+  } catch(e) {
+    flash("Erreur : " + e.message, "error");
+    btn.disabled = false;
+    btn.innerHTML = activer ? "Activer la maintenance" : "Désactiver la maintenance";
+  }
+}
 
 /* ── Modifier clé secrète (Super Admin) ── */
 document.getElementById("form-cle").addEventListener("submit", async (e) => {

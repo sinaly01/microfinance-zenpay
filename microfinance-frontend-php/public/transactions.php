@@ -29,9 +29,9 @@ $sidebar_active = 'transactions';
       <input class="form-control" type="text" id="search-input" placeholder="Référence, compte..." oninput="filtrer()" style="max-width:300px;">
       <select class="form-control" id="filter-type" onchange="filtrer()" style="max-width:160px;">
         <option value="">Tous types</option>
-        <option value="Versement">Versement</option>
-        <option value="Retrait">Retrait</option>
-        <option value="Virement">Virement</option>
+        <option value="VERSEMENT">Versement</option>
+        <option value="RETRAIT">Retrait</option>
+        <option value="VIREMENT">Virement</option>
       </select>
       <select class="form-control" id="filter-statut" onchange="filtrer()" style="max-width:160px;">
         <option value="">Tous statuts</option>
@@ -70,12 +70,26 @@ $sidebar_active = 'transactions';
 requireAuth();
 let allTx = [];
 const txBadge = {VALIDEE:'badge-success',EN_COURS:'badge-kyc-pending',REJETEE:'badge-failed',ANNULEE:'badge-failed'};
+const txLabel = {VERSEMENT:'Versement',RETRAIT:'Retrait',VIREMENT:'Virement'};
+const txColor = {VERSEMENT:'#16a34a',RETRAIT:'#dc2626',VIREMENT:'#2563eb'};
+
+// L'endpoint GET /api/transactions retourne les entités brutes sans typeTransaction ni numeroCompteSource.
+// On les déduit : présence de "source" → VERSEMENT, "canal" → RETRAIT, sinon VIREMENT.
+function normaliserTx(t) {
+  const type = t.typeTransaction
+    || ("source" in t ? "VERSEMENT" : "canal" in t ? "RETRAIT" : "VIREMENT");
+  const compteSource = t.numeroCompteSource
+    || t.compte?.numeroCompte
+    || null;
+  return {...t, typeTransaction: type, numeroCompteSource: compteSource};
+}
 
 async function init() {
   const me = await api.get("/api/auth/me");
   document.getElementById("user-avatar").textContent = (me.prenom||"A")[0].toUpperCase();
   try {
-    allTx = await api.get("/api/transactions");
+    const raw = await api.get("/api/transactions");
+    allTx = raw.map(normaliserTx);
     afficher(allTx);
     document.getElementById("tx-count").textContent = allTx.length + " transactions";
   } catch(e) {
@@ -102,7 +116,7 @@ function filtrer() {
   const statut = document.getElementById("filter-statut").value;
   const filtered = allTx.filter(t => {
     const matchQ = !q || (t.reference||"").toLowerCase().includes(q) || (t.numeroCompteSource||"").toLowerCase().includes(q);
-    const matchType = !type || (t.typeTransaction||"").includes(type);
+    const matchType = !type || (t.typeTransaction||"") === type;
     const matchSt = !statut || t.statut === statut;
     return matchQ && matchType && matchSt;
   });
@@ -117,11 +131,14 @@ function afficher(list) {
     const s = t.statut || "—";
     const type = t.typeTransaction || "—";
     const montant = Number(t.montant||0).toLocaleString("fr-FR");
+    const color = txColor[type] || "#888";
+    const label = txLabel[type] || type;
+    const compteSource = t.numeroCompteSource || "—";
     return `<tr>
       <td style="font-family:monospace;font-size:.8rem;">${t.reference||"—"}</td>
-      <td><span class="badge badge-pending" style="font-size:.72rem;">${type}</span></td>
+      <td><span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:700;color:${color};background:${color}18;">${label}</span></td>
       <td style="font-weight:700;">${montant} FCFA</td>
-      <td style="font-size:.8rem;font-family:monospace;">${t.numeroCompteSource||"—"}</td>
+      <td style="font-size:.8rem;font-family:monospace;">${compteSource}</td>
       <td><span class="badge ${txBadge[s]||"badge-pending"}">${s}</span></td>
       <td style="font-size:.78rem;">${dt}</td>
     </tr>`;

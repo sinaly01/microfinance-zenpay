@@ -67,6 +67,21 @@ $sidebar_active = 'dashboard';
 
 <main class="page-content">
 
+  <!-- Bannière maintenance (visible si système en maintenance) -->
+  <div id="banner-maintenance" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:14px 20px;margin-bottom:14px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:1.2rem;">🔴</span>
+      <div>
+        <div style="font-weight:800;font-size:.95rem;">Site en MODE MAINTENANCE</div>
+        <div style="font-size:.78rem;opacity:.85;">Toutes les transactions sont bloquées. Les administrateurs restent connectés.</div>
+      </div>
+    </div>
+    <button id="btn-desactiver-maint-dash" onclick="desactiverMaintenanceDash()"
+      style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.5);color:#fff;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.83rem;">
+      Rétablir le service
+    </button>
+  </div>
+
   <!-- Bannière rôle (remplie en JS) -->
   <div class="role-banner banner-superadmin" id="role-banner">
     <div>
@@ -194,6 +209,40 @@ async function init() {
   // Refresh sessions auto (SUPER_ADMIN / ADMIN_SYSTEME seulement)
   if (role === "SUPER_ADMIN" || role === "ADMIN_SYSTEME") {
     setInterval(() => loadSessions(), 15000);
+  }
+
+  // Vérifier le statut du système
+  try {
+    const sys = await api.get("/api/system/status");
+    const enMaint = sys.status === "MAINTENANCE_CRITIQUE";
+    const sysEl = document.getElementById("sys-status");
+    if (enMaint) {
+      sysEl.textContent = "● Maintenance";
+      sysEl.className = "badge badge-failed";
+      const bm = document.getElementById("banner-maintenance");
+      bm.style.display = "flex";
+      // Le bouton "Rétablir" n'est visible que pour le Super Admin
+      if (role !== "SUPER_ADMIN") {
+        document.getElementById("btn-desactiver-maint-dash").style.display = "none";
+      }
+    }
+  } catch(e) {}
+}
+
+async function desactiverMaintenanceDash() {
+  if (!confirm("Désactiver la maintenance et reprendre le service normal ?")) return;
+  const btn = document.getElementById("btn-desactiver-maint-dash");
+  btn.disabled = true; btn.textContent = "…";
+  try {
+    await api.postQuery("/api/system/kill-switch", { activer: false });
+    document.getElementById("banner-maintenance").style.display = "none";
+    const sysEl = document.getElementById("sys-status");
+    sysEl.textContent = "● Opérationnel";
+    sysEl.className = "badge badge-success";
+    flash("Service rétabli avec succès.", "success");
+  } catch(e) {
+    flash("Erreur : " + e.message, "error");
+    btn.disabled = false; btn.textContent = "Rétablir le service";
   }
 }
 
