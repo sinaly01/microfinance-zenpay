@@ -1,0 +1,64 @@
+@'
+version: '3.8'
+
+services:
+  # 1. La base de données Oracle XE 21c
+  oracle-db:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: zenpay-oracle
+    ports:
+      - "1522:1521"
+    environment:
+      - ORACLE_PASSWORD=oracle
+      - APP_USER=microfinance
+      - APP_USER_PASSWORD=microfinance123
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 20s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: always
+
+  # 2. L'API Spring Boot (Back-end)
+  backend-api:
+    build:
+      context: ../microfinance-api
+      dockerfile: Dockerfile
+    container_name: zenpay-api
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:oracle:thin:@oracle-db:1521/XEPDB1
+      - SPRING_DATASOURCE_USERNAME=microfinance
+      - SPRING_DATASOURCE_PASSWORD=microfinance123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - JWT_SECRET=microfinance_secret_key_very_long_and_secure_2024_bceao
+      - JWT_EXPIRATION=86400000
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=votre.email@gmail.com
+      - MAIL_PASSWORD=xxxx-xxxx-xxxx-xxxx
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    restart: always
+
+  # 3. Le Site Web PHP (Front-end)
+  frontend-web:
+    build:
+      context: ../microfinance-frontend-php
+      dockerfile: Dockerfile
+    container_name: zenpay-front
+    ports:
+      - "5502:80"
+    depends_on:
+      - backend-api
+    restart: always
+
+volumes:
+  oracle-data:
+    name: zenpay-oracle-data
+'@ | Out-File -FilePath docker-compose.yml -Encoding utf8

@@ -1,0 +1,97 @@
+# ============================================================
+# ZEN-PAY — Stack complète (Oracle + Spring Boot + PHP)
+# Usage : docker compose up -d
+# ============================================================
+# Variables sensibles dans .env (cf. .env.example)
+# ============================================================
+
+services:
+
+  # ── Oracle XE 21c ──────────────────────────────────────────
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: zenpay-oracle
+    restart: unless-stopped
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:-oracle}    # mdp SYS / SYSTEM
+      APP_USER: ${APP_USER:-microfinance}
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD:-microfinance123}
+    ports:
+      - "1522:1521"   # 1522 côté hôte (1521 occupé par l'Oracle Windows natif)
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      # Scripts d'init exécutés au PREMIER démarrage (avec APP_USER déjà créé)
+      - ./oracle-init:/container-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 20s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks:
+      - zenpay-net
+
+  # ── Spring Boot API ────────────────────────────────────────
+  spring-api:
+    build:
+      context: ../microfinance-api
+      dockerfile: Dockerfile
+    container_name: zenpay-api
+    restart: unless-stopped
+    depends_on:
+      oracle:
+        condition: service_healthy
+    environment:
+      # On override l'URL JDBC pour pointer vers le container Oracle
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle:1521/XEPDB1
+      SPRING_DATASOURCE_USERNAME: ${APP_USER:-microfinance}
+      SPRING_DATASOURCE_PASSWORD: ${APP_USER_PASSWORD:-microfinance123}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET:-microfinance_secret_key_very_long_and_secure_2024_bceao}
+      JWT_EXPIRATION: 86400000
+      CORS_ALLOWED_ORIGINS: "*"
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+    ports:
+      - "8080:8080"
+    networks:
+      - zenpay-net
+
+  # ── Frontend PHP / Apache ──────────────────────────────────
+  php-front:
+    build:
+      context: ../microfinance-frontend-php
+      dockerfile: Dockerfile
+    container_name: zenpay-front
+    restart: unless-stopped
+    depends_on:
+      - spring-api
+    ports:
+      - "5502:80"
+    networks:
+      - zenpay-net
+
+  # ── (Optionnel) Adminer — interface web pour Oracle ────────
+  # Décommenter si besoin de gérer la BD via navigateur
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: zenpay-adminer
+  #   ports:
+  #     - "8081:8080"
+  #   depends_on:
+  #     - oracle
+  #   networks:
+  #     - zenpay-net
+
+# ── Volumes persistants ────────────────────────────────────
+volumes:
+  oracle-data:
+    name: zenpay-oracle-data
+
+# ── Réseau interne ─────────────────────────────────────────
+networks:
+  zenpay-net:
+    name: zenpay-net
+    driver: bridge

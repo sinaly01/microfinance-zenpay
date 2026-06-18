@@ -1,0 +1,13 @@
+# Fichiers à exclure de l'image Docker
+target/
+.idea/
+.vscode/
+*.iml
+*.log
+.git/
+.gitignore
+README.md
+CONTEXTE.md
+restart.ps1
+Dockerfile
+.dockerignore

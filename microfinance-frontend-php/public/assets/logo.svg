@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 110" preserveAspectRatio="xMidYMid meet">
+    <!-- Coin angulaire vert en haut à droite -->
+    <path d="M 280,8 L 305,8 L 305,33" stroke="#4CAF34" stroke-width="5" fill="none" stroke-linecap="square"/>
+
+    <!-- Tick vert (V) à gauche -->
+    <path d="M 18,55 L 38,82 L 60,55" stroke="#4CAF34" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Texte ZEN-PAY -->
+    <text x="55" y="68" font-family="Poppins, 'Segoe UI', sans-serif"
+          font-weight="700" font-size="48" fill="#0D2B45" letter-spacing="0.5">ZEN-PAY</text>
+
+    <!-- Trait bleu horizontal qui prolonge le tick -->
+    <path d="M 38,82 Q 165,95 295,80" stroke="#0D2B45" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+    <!-- Trait vert plus court en dessous -->
+    <path d="M 38,90 Q 110,98 175,92" stroke="#4CAF34" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>

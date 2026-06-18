@@ -1,0 +1,77 @@
+# ============================================================
+# .gitignore — ZEN-PAY (monorepo)
+# ============================================================
+
+# ── Java / Maven ────────────────────────────────────────────
+**/target/
+**/*.class
+**/*.jar
+**/*.war
+**/*.ear
+**/build/
+**/out/
+**/.mvn/wrapper/maven-wrapper.jar
+**/dependency-reduced-pom.xml
+
+# ── IntelliJ / IDE ──────────────────────────────────────────
+**/.idea/
+**/*.iml
+**/*.ipr
+**/*.iws
+**/.vscode/
+**/.project
+**/.classpath
+**/.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ── Logs ────────────────────────────────────────────────────
+**/*.log
+**/logs/
+**/spring.log
+**/hs_err_pid*.log
+
+# ── OS / éditeurs ──────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+
+# ── PHP ─────────────────────────────────────────────────────
+**/vendor/
+**/composer.lock
+**/composer.phar
+
+# ── Docker ──────────────────────────────────────────────────
+# Le .env contient des mdp → ne PAS commiter
+microfinance-docker/.env
+**/oracle-data/
+
+# ── Env & secrets ──────────────────────────────────────────
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# ── Fichiers temp ──────────────────────────────────────────
+**/tmp/
+**/temp/
+*.tmp
+*.bak
+*.orig
+
+# ── Backups / dumps ────────────────────────────────────────
+*.dump
+*.dmp
+**/dump-genere.sql
+
+# ── Diagrammes générés (on garde les .mmd source uniquement) ──
+microfinance-frontend-php/diagrammes/*.png
+microfinance-frontend-php/diagrammes/*.svg
+microfinance-frontend-php/diagrammes/*.pdf
+
+# ── Livrables exportés ─────────────────────────────────────
+*.zip
+!**/lib/**/*.jar
